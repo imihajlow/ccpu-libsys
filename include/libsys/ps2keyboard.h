@@ -118,7 +118,6 @@
 
 extern uint8_t ps2_modifiers_mask;
 
-uint8_t ps2_init(void);
 uint8_t ps2_get_key_event(void);
 uint8_t ps2_wait_key_pressed(void);
 

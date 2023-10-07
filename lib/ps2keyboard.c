@@ -2,8 +2,8 @@
 #include <libsys/ps2.h>
 #include <stdbool.h>
 
-static bool extended;
-static uint8_t release;
+static bool extended = false;
+static uint8_t release = 0;
 
 static const uint8_t scancode[256] = {
     [0x00] = 0,
@@ -173,7 +173,7 @@ static const uint8_t scancode_ext[256] = {
     [0x7d] = PS2_KEY_PAGEUP,
 };
 
-static uint8_t ps2_keymap[128] = {
+static const uint8_t ps2_keymap[128] = {
         [PS2_KEY_A] =          'a',
         [PS2_KEY_B] =          'b',
         [PS2_KEY_C] =          'c',
@@ -239,7 +239,7 @@ static uint8_t ps2_keymap[128] = {
         [PS2_KEY_NUM_8] =      '8',
         [PS2_KEY_NUM_9] =      '9',
 };
-static uint8_t ps2_keymap_shift[128] = {
+static const uint8_t ps2_keymap_shift[128] = {
         [PS2_KEY_A] =          'A',
         [PS2_KEY_B] =          'B',
         [PS2_KEY_C] =          'C',
@@ -306,13 +306,7 @@ static uint8_t ps2_keymap_shift[128] = {
         [PS2_KEY_NUM_9] =      '9',
 };
 
-uint8_t ps2_modifiers_mask;
-
-uint8_t ps2_init(void) {
-    extended = false;
-    release = 0;
-    ps2_modifiers_mask = 0;
-}
+uint8_t ps2_modifiers_mask = 0;
 
 uint8_t ps2_wait_key_pressed(void) {
      uint8_t result = PS2_KEY_NONE;
@@ -367,8 +361,6 @@ uint8_t ps2_get_key_event(void) {
     }
 }
 
-void ps2_trap(uint8_t key, uint8_t event) {}
-
 uint16_t ps2_get_ascii(void) {
     uint8_t event = ps2_get_key_event();
     if (!event || (event & PS2_KEY_RELEASE)) {
@@ -383,7 +375,6 @@ uint16_t ps2_get_ascii(void) {
         } else {
             key = ps2_keymap[event];
         }
-        ps2_trap(key, event);
         if (key) {
             return key;
         } else {
