@@ -2,7 +2,7 @@ CC=ccpu-cc
 ASM=../ccpu/tools/asm.py
 CFLAGS=--std=gnu11 -I include -I ../ccpu-libc/include
 
-LIBSYS_OBJECTS=lib/vga.o lib/ps2.o lib/ps2keyboard.o
+LIBSYS_OBJECTS=lib/vga.o lib/ps2.o lib/ps2keyboard.o lib/crc.o
 
 libsys.a: $(LIBSYS_OBJECTS)
 	ar rc $@ $^
