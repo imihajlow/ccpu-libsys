@@ -1,11 +1,14 @@
     .export crc_check
+    .export crc_update
+    .export crc_update_zeroes
 
     ; arguments for normal calls on frame B
     .const frameb_arg1 = 0xc800 + 8 * 0
     .const frameb_arg2 = 0xc800 + 8 * 1
-    .const index       = 0xc800 + 8 * 2
-    .const crc         = 0xc800 + 8 * 3
-    .const ret_addr    = 0xc800 + 8 * 4
+    .const frameb_arg3 = 0xc800 + 8 * 2
+    .const index       = 0xc800 + 8 * 3
+    .const crc         = 0xc800 + 8 * 4
+    .const ret_addr    = 0xc800 + 8 * 5
 
     .global __cc_ret
 
@@ -168,6 +171,262 @@ crc_check_return:
     inc pl
     mov a, 0
     st  a
+
+    ldi pl, lo(ret_addr)
+    ldi ph, hi(ret_addr)
+    ld  a
+    inc pl
+    ld  ph
+    mov pl, a
+    jmp
+
+    ; uint32_t crc_update(uint32_t crc, const void *start, const void *end);
+    .section text.crc_update
+crc_update:
+    mov a, pl
+    mov b, a
+    mov a, ph
+    ldi pl, lo(ret_addr)
+    ldi ph, hi(ret_addr)
+    st  b
+    inc pl
+    st  a
+
+crc_update_loop:
+    ; if start == end goto loop end
+    ldi ph, hi(frameb_arg2)
+    ldi pl, lo(frameb_arg2)
+    ld  b
+    ldi pl, lo(frameb_arg3)
+    ld  a
+    sub b, a
+    inc pl
+    ld  a
+    ldi pl, lo(frameb_arg2 + 1)
+    ld  pl
+    sub a, pl
+    or  a, b
+    ldi ph, hi(crc_update_loop_end)
+    ldi pl, lo(crc_update_loop_end)
+    jz
+
+    ; index = *start ^ crc[0]
+    ldi ph, hi(frameb_arg2)
+    ldi pl, lo(frameb_arg2)
+    ld  a
+    inc pl
+    ld  ph
+    mov pl, a
+    ld  a
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1)
+    ld  b
+    xor a, b
+    ldi pl, lo(index)
+    st  a
+
+    ; crc[0] = crc[1] ^ table0[index]
+    ldi ph, hi(crc_table_0)
+    mov pl, a
+    ld  a
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1 + 1)
+    ld  b
+    xor a, b
+    dec pl
+    st  a
+
+    ; crc[1] = crc[2] ^ table1[index]
+    ldi pl, lo(index)
+    ld  pl
+    ldi ph, hi(crc_table_1)
+    ld  a
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1 + 2)
+    ld  b
+    xor a, b
+    dec pl
+    st  a
+
+    ; crc[2] = crc[3] ^ table2[index]
+    ldi pl, lo(index)
+    ld  pl
+    ldi ph, hi(crc_table_2)
+    ld  a
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1 + 3)
+    ld  b
+    xor a, b
+    dec pl
+    st  a
+
+    ; crc[3] =          table3[index]
+    ldi pl, lo(index)
+    ld  pl
+    ldi ph, hi(crc_table_3)
+    ld  a
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1 + 3)
+    st  a
+
+    ; start += 1
+    ldi ph, hi(frameb_arg2)
+    ldi pl, lo(frameb_arg2)
+    ld  b
+    inc pl
+    ld  a
+    inc b
+    adc a, 0
+    st  a
+    dec pl
+    st  b
+
+    ldi ph, hi(crc_update_loop)
+    ldi pl, lo(crc_update_loop)
+    jmp
+crc_update_loop_end:
+    ; copy result
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1)
+    ld  a
+    inc pl
+    ld  b
+    ldi ph, hi(__cc_ret)
+    ldi pl, lo(__cc_ret)
+    st  a
+    inc pl
+    st  b
+    ldi ph, hi(frameb_arg1 + 2)
+    ldi pl, lo(frameb_arg1 + 2)
+    ld  a
+    inc pl
+    ld  b
+    ldi ph, hi(__cc_ret + 2)
+    ldi pl, lo(__cc_ret + 2)
+    st  a
+    inc pl
+    st  b
+
+    ldi pl, lo(ret_addr)
+    ldi ph, hi(ret_addr)
+    ld  a
+    inc pl
+    ld  ph
+    mov pl, a
+    jmp
+
+    ; uint32_t crc_update_zeroes(uint32_t crc, uint16_t n_zeroes);
+    .section text.crc_update_zeroes
+crc_update_zeroes:
+    mov a, pl
+    mov b, a
+    mov a, ph
+    ldi pl, lo(ret_addr)
+    ldi ph, hi(ret_addr)
+    st  b
+    inc pl
+    st  a
+
+crc_update_zeroes_loop:
+    ; if n_zeroes == 0 goto loop end
+    ldi ph, hi(frameb_arg2)
+    ldi pl, lo(frameb_arg2)
+    ld  b
+    inc pl
+    ld  a
+    or  a, b
+    ldi ph, hi(crc_update_zeroes_loop_end)
+    ldi pl, lo(crc_update_zeroes_loop_end)
+    jz
+
+    ; index = crc[0]
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1)
+    ld  a
+    ldi pl, lo(index)
+    st  a
+
+    ; crc[0] = crc[1] ^ table0[index]
+    ldi ph, hi(crc_table_0)
+    mov pl, a
+    ld  a
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1 + 1)
+    ld  b
+    xor a, b
+    dec pl
+    st  a
+
+    ; crc[1] = crc[2] ^ table1[index]
+    ldi pl, lo(index)
+    ld  pl
+    ldi ph, hi(crc_table_1)
+    ld  a
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1 + 2)
+    ld  b
+    xor a, b
+    dec pl
+    st  a
+
+    ; crc[2] = crc[3] ^ table2[index]
+    ldi pl, lo(index)
+    ld  pl
+    ldi ph, hi(crc_table_2)
+    ld  a
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1 + 3)
+    ld  b
+    xor a, b
+    dec pl
+    st  a
+
+    ; crc[3] =          table3[index]
+    ldi pl, lo(index)
+    ld  pl
+    ldi ph, hi(crc_table_3)
+    ld  a
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1 + 3)
+    st  a
+
+    ; n_zeroes -= 1
+    ldi ph, hi(frameb_arg2)
+    ldi pl, lo(frameb_arg2)
+    ld  b
+    inc pl
+    ld  a
+    dec b
+    sbb a, 0
+    st  a
+    dec pl
+    st  b
+
+    ldi ph, hi(crc_update_zeroes_loop)
+    ldi pl, lo(crc_update_zeroes_loop)
+    jmp
+crc_update_zeroes_loop_end:
+    ; copy result
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1)
+    ld  a
+    inc pl
+    ld  b
+    ldi ph, hi(__cc_ret)
+    ldi pl, lo(__cc_ret)
+    st  a
+    inc pl
+    st  b
+    ldi ph, hi(frameb_arg1 + 2)
+    ldi pl, lo(frameb_arg1 + 2)
+    ld  a
+    inc pl
+    ld  b
+    ldi ph, hi(__cc_ret + 2)
+    ldi pl, lo(__cc_ret + 2)
+    st  a
+    inc pl
+    st  b
 
     ldi pl, lo(ret_addr)
     ldi ph, hi(ret_addr)

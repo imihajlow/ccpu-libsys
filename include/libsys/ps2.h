@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define PS2_DATA *((uint8_t*)0xFD00)
-#define PS2_STATUS *((uint8_t*)0xFD01)
+#define PS2_DATA *((volatile uint8_t*)0xFD00)
+#define PS2_STATUS *((volatile uint8_t*)0xFD01)
 
 #define PS2_STATUS_HAS_DATA 1
 #define PS2_STATUS_RECV_VALID 2

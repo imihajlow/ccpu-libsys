@@ -27,7 +27,7 @@
 #define COLOR(fg, bg) ((fg) + ((bg) << 4))
 #define VGA_OFFSET(col, row) ((col) + ((row) << 7))
 
-#define VGA_CHAR_SEG ((uint8_t*)0xe000)
-#define VGA_COLOR_SEG ((uint8_t*)0xd000)
+#define VGA_CHAR_SEG ((volatile uint8_t*)0xe000)
+#define VGA_COLOR_SEG ((volatile uint8_t*)0xd000)
 
 void vga_clear(uint8_t color);
