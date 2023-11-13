@@ -1,6 +1,10 @@
-    .export crc_check
+    .export crc_check_relaxed
     .export crc_update
     .export crc_update_zeroes
+    .export crc_table_0
+    .export crc_table_1
+    .export crc_table_2
+    .export crc_table_3
 
     ; arguments for normal calls on frame B
     .const frameb_arg1 = 0xc800 + 8 * 0
@@ -12,9 +16,9 @@
 
     .global __cc_ret
 
-    ; bool crc_check(const void *start, const void *end);
-    .section text.crc_check
-crc_check:
+    ; bool crc_check_relaxed(const void *start, const void *end);
+    .section text.crc_check_relaxed
+crc_check_relaxed:
     mov a, pl
     mov b, a
     mov a, ph
@@ -23,6 +27,17 @@ crc_check:
     st  b
     inc pl
     st  a
+
+    ; end -= 1
+    ldi pl, lo(frameb_arg2)
+    ld  b
+    inc pl
+    ld  a
+    dec b
+    sbb a, 0
+    st  a
+    dec pl
+    st  b
 
     ; crc = 0xffffffff
     ldi pl, lo(crc)
@@ -35,7 +50,7 @@ crc_check:
     inc pl
     st  a
 
-crc_check_loop:
+crc_check_relaxed_loop:
     ; if start == end goto loop end
     ldi ph, hi(frameb_arg1)
     ldi pl, lo(frameb_arg1)
@@ -49,8 +64,8 @@ crc_check_loop:
     ld  pl
     sub a, pl
     or  a, b
-    ldi ph, hi(crc_check_loop_end)
-    ldi pl, lo(crc_check_loop_end)
+    ldi ph, hi(crc_check_relaxed_loop_end)
+    ldi pl, lo(crc_check_relaxed_loop_end)
     jz
 
     ; index = *start ^ crc[0]
@@ -124,46 +139,114 @@ crc_check_loop:
     dec pl
     st  b
 
-    ldi ph, hi(crc_check_loop)
-    ldi pl, lo(crc_check_loop)
+    ldi ph, hi(crc_check_relaxed_loop)
+    ldi pl, lo(crc_check_relaxed_loop)
     jmp
-crc_check_loop_end:
+crc_check_relaxed_loop_end:
     ; check if crc == ~0x2144DF1C = 0xDEBB20E3
     ldi ph, hi(crc)
     ldi pl, lo(crc)
     ld  a
     ldi b, 0xE3
-    sub a, b
-    st  a
+    sub b, a
     inc pl
     ld  a
+    ldi pl, 0x20
+    sub a, pl
+    or  b, a
+    ldi pl, lo(crc + 2)
+    ld  a
+    ldi pl, 0xBB
+    sub a, pl
+    or  b, a
+    ldi pl, lo(crc + 3)
+    ld  a
+    ldi pl, 0xDE
+    sub a, pl
+    or  b, a
+    ; if b == 0 return 1, else check next byte
+    ldi a, 1
+    ldi ph, hi(crc_check_return)
+    ldi pl, lo(crc_check_return)
+    jz
+
+    ; index = *start ^ crc[0]
+    ldi ph, hi(frameb_arg1)
+    ldi pl, lo(frameb_arg1)
+    ld  a
+    inc pl
+    ld  ph
+    mov pl, a
+    ld  a
+    ldi ph, hi(crc)
+    ldi pl, lo(crc)
+    ld  b
+    xor a, b
+    ldi pl, lo(index)
+    st  a
+
+    ; 0xDEBB20E3
+    ; crc[0] = crc[1] ^ table0[index] - 0xE3
+    ldi ph, hi(crc_table_0)
+    mov pl, a
+    ld  a
+    ldi ph, hi(crc)
+    ldi pl, lo(crc + 1)
+    ld  b
+    xor a, b
+    ldi b, 0xe3
+    sub a, b
+    dec pl
+    st  a
+
+    ; crc[1] = crc[2] ^ table1[index] - 0x20
+    ldi pl, lo(index)
+    ld  pl
+    ldi ph, hi(crc_table_1)
+    ld  a
+    ldi ph, hi(crc)
+    ldi pl, lo(crc + 2)
+    ld  b
+    xor a, b
     ldi b, 0x20
     sub a, b
+    dec pl
     st  a
-    inc pl
+
+    ; crc[2] = crc[3] ^ table2[index] - 0xbb
+    ldi pl, lo(index)
+    ld  pl
+    ldi ph, hi(crc_table_2)
     ld  a
-    ldi b, 0xBB
-    sub a, b
-    st  a
-    inc pl
-    ld  a
-    ldi b, 0xDE
+    ldi ph, hi(crc)
+    ldi pl, lo(crc + 3)
+    ld  b
+    xor a, b
+    ldi b, 0xbb
     sub b, a
-    dec pl
+
+    ; crc[3] =          table3[index] - 0xde
+    ldi pl, lo(index)
+    ld  pl
+    ldi ph, hi(crc_table_3)
+    ld  a
+    ldi pl, 0xde
+    sub a, pl
+    or  b, a ; b was crc[2]
+    ldi ph, hi(crc)
+    ldi pl, lo(crc + 1)
     ld  a
     or  b, a
     dec pl
     ld  a
-    or  b, a
-    dec pl
-    ld  a
-    or  b, a
+    or  a, b
     ; if b == 0 return 1, else return 0
     mov a, 0
     ldi ph, hi(crc_check_return)
     ldi pl, lo(crc_check_return)
     jnz
     inc a
+
 crc_check_return:
     ldi ph, hi(__cc_ret)
     ldi pl, lo(__cc_ret)
