@@ -13,6 +13,7 @@
 static size_t last_frame_len;
 
 extern uint8_t bitmix[256];
+void bitmix_memcpy(void *dst, const void *src, size_t len);
 
 void eth_init(void) {
     memset(ETH_BUF, bitmix[0x55], PREAMBLE_LEN - 1);
@@ -22,10 +23,7 @@ void eth_init(void) {
 }
 
 void eth_transmit(const void *data, size_t size) {
-    uint8_t *cdata = data;
-    for (uint16_t i = 0; i != size; ++i) {
-        ETH_BUF[PREAMBLE_LEN + i] = bitmix[cdata[i]];
-    }
+    bitmix_memcpy(ETH_BUF + PREAMBLE_LEN, data, size);
     if (size < last_frame_len) {
         bzero(ETH_BUF + PREAMBLE_LEN + size, last_frame_len - size);
     }

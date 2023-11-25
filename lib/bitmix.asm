@@ -1,8 +1,102 @@
     .export bitmix
+    .export bitmix_memcpy
+
+    .const frameb_arg1 = 0xc800 + 8 * 0
+    .const frameb_arg2 = 0xc800 + 8 * 1
+    .const frameb_arg3 = 0xc800 + 8 * 2
+
+    .const dst         = 0xc800 + 8 * 0
+    .const src         = 0xc800 + 8 * 1
+    .const length      = 0xc800 + 8 * 2
+    .const ret_addr    = 0xc800 + 8 * 5
+
+    ; void bitmix_memcpy(void *dst, const void *src, size_t length)
+    .section text.bitmix_memcpy
+bitmix_memcpy:
+    mov a, pl
+    mov b, a
+    mov a, ph
+    ldi pl, lo(ret_addr)
+    ldi ph, hi(ret_addr)
+    st  b
+    inc pl
+    st  a
+
+bitmix_memcpy_loop:
+    ; --length
+    ldi ph, hi(length)
+    ldi pl, lo(length)
+    ld  b
+    inc pl
+    ld  a
+    dec b
+    sbb a, 0
+    st  a
+    ldi pl, lo(length)
+    st  b
+    ldi ph, hi(bitmix_memcpy_finish)
+    ldi pl, lo(bitmix_memcpy_finish)
+    jc
+
+    ; b = bitmix[*src]
+    ldi ph, hi(src)
+    ldi pl, lo(src)
+    ld  a
+    inc pl
+    ld  ph
+    mov pl, a
+    ld  pl
+    ldi ph, hi(bitmix)
+    ld  b
+
+    ; *dst = b
+    ldi ph, hi(dst)
+    ldi pl, lo(dst)
+    ld  a
+    inc pl
+    ld  ph
+    mov pl, a
+    st  b
+
+    ; ++src
+    ldi ph, hi(src)
+    ldi pl, lo(src)
+    ld  b
+    inc pl
+    ld  a
+    inc b
+    adc a, 0
+    st  a
+    dec pl
+    st  b
+
+    ; ++dst
+    ldi pl, lo(dst)
+    ld  b
+    inc pl
+    ld  a
+    inc b
+    adc a, 0
+    st  a
+    dec pl
+    st  b
+
+    ldi ph, hi(bitmix_memcpy_loop)
+    ldi pl, lo(bitmix_memcpy_loop)
+    jmp
+
+bitmix_memcpy_finish:
+    ldi pl, lo(ret_addr)
+    ldi ph, hi(ret_addr)
+    ld  a
+    inc pl
+    ld  ph
+    mov pl, a
+    jmp
 
     ; Table to shuffle bit order to fix board error.
     ; 32107654
-    .section rodata.bitmix
+    .section text.bitmix
     .align 256
 bitmix:
     db 0x00, 0x08, 0x04, 0x0C, 0x02, 0x0A, 0x06, 0x0E, 0x01, 0x09, 0x05, 0x0D, 0x03, 0x0B, 0x07, 0x0F

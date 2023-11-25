@@ -17,3 +17,5 @@ void eth_init(void);
 // Write the packet to the buffer, calculate and write CRC, enable transmission.
 // Does not check for completion of previous transfer!
 void eth_transmit(const void *data, size_t size);
+
+extern uint8_t eth_mac[6];
