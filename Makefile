@@ -21,5 +21,5 @@ libfat_impl.a: $(LIBSYS_FAT_OBJECTS)
 	$(ASM) -o $@ $^
 
 clean:
-	rm -f lib/*.s lib/*.o libsys.a
+	rm -f lib/*.s lib/*.o libsys.a lib/fat/*.o
 

@@ -164,7 +164,7 @@ uint8_t fat_open_path(char _syscall_nr, const char *path, uint8_t mode);
 
 #else // defined(FAT_IMPL)
 
-void syscall(void);
+void syscall(uint8_t n);
 
 #define SYSCALL_ADDR (&syscall)
 
