@@ -56,14 +56,13 @@ struct FatDirEntry {
 
 static_assert(sizeof(struct FatDirEntry) == 32, "sizeof FatDirEntry must be 32");
 
-
 #if defined(FAT_IMPL)
 
 extern uint8_t last_error;
 
-void fat_print_last_error(void);
-
 uint8_t fat_get_last_error(char _syscall_nr);
+
+void fat_print_last_error(char _syscall_nr);
 
 /**
  Initializes data structures. Does not fail.
@@ -117,6 +116,18 @@ bool fat_truncate(char _syscall_nr, uint8_t fd);
 bool fat_seek_end(char _syscall_nr, uint8_t fd);
 
 /**
+ Tell current position.
+ Returns 0xffffffff and sets last_error on error.
+ */
+uint32_t fat_tell(char _syscall_nr, uint8_t fd);
+
+/**
+ Seek to the absolute position.
+ Returns false and sets last_error on error;
+ */
+bool fat_seek(char _syscall_nr, uint8_t fd, uint32_t pos);
+
+/**
  Returns bool, set last_error on failure. Fails on a stale descriptor when needs to write out the dir entry.
  */
 bool fat_close(char _syscall_nr, uint8_t fd);
@@ -164,22 +175,7 @@ uint8_t fat_open_path(char _syscall_nr, const char *path, uint8_t mode);
 
 #else // defined(FAT_IMPL)
 
-void syscall(uint8_t n);
-
-#define SYSCALL_ADDR (&syscall)
-
-#define SYSCALL_FAT_OPEN_PATH 0
-#define SYSCALL_FAT_READ 1
-#define SYSCALL_FAT_WRITE 2
-#define SYSCALL_FAT_CLOSE 3
-#define SYSCALL_FAT_TRUNCATE 4
-#define SYSCALL_FAT_SEEK_END 5
-#define SYSCALL_FAT_GET_SIZE 6
-#define SYSCALL_FAT_GET_NEXT_DIR_ENTRY 7
-#define SYSCALL_FAT_MOUNT 8
-#define SYSCALL_EXEC 9
-#define SYSCALL_EXEC_FD 10
-#define SYSCALL_GET_LAST_ERROR 11
+#include "../syscall.h"
 
 typedef uint8_t (*__fat_open_path_t)(char _syscall_nr, const char *path, uint8_t mode);
 #define fat_open_path(path, mode) ((__fat_open_path_t)SYSCALL_ADDR)(SYSCALL_FAT_OPEN_PATH, path, mode)
@@ -216,5 +212,14 @@ typedef bool (*__fat_exec_fd_t)(char _syscall_nr, uint8_t fd);
 
 typedef uint8_t (*__get_last_error_fd_t)(char _syscall_nr);
 #define fat_get_last_error() ((__get_last_error_fd_t)SYSCALL_ADDR)(SYSCALL_GET_LAST_ERROR)
+
+typedef uint32_t (*__fat_tell_t)(char _syscall_nr, uint8_t fd);
+#define fat_tell(fd) ((__fat_tell_t)SYSCALL_ADDR)(SYSCALL_FAT_TELL, fd)
+
+typedef bool (*__fat_seek_t)(char _syscall_nr, uint8_t fd, uint32_t pos);
+#define fat_seek(fd, pos) ((__fat_seek_t)SYSCALL_ADDR)(SYSCALL_FAT_SEEK, fd, pos)
+
+typedef void (*__fat_print_last_error_t)(char _syscall_nr);
+#define fat_print_last_error() ((__fat_print_last_error_t)SYSCALL_ADDR)(SYSCALL_FAT_PRINT_LAST_ERROR)
 
 #endif // defined(FAT_IMPL)

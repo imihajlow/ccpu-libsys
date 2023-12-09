@@ -57,7 +57,7 @@ bool fat_mount(char _syscall_nr) {
 
     struct BPB *bpb = (struct BPB *)cache_block;
 
-    if (bpb->bytes_per_sector != 512) {
+    if (bpb->bytes_per_sector != CARD_BLOCK_SIZE) {
         last_error = FAT_ERROR_UNSUPPORTED_SECTOR_SIZE;
         return false;
     }
@@ -709,7 +709,7 @@ bool fat_seek_end(char _syscall_nr, uint8_t fd) {
         pfd->cur_cluster = pfd->next_cluster;
         uint16_t next_cluster = read_fat_entry(pfd->next_cluster);
         pfd->next_cluster = next_cluster;
-        if (next_cluster) {
+        if (!next_cluster) {
             return false;
         }
     }
@@ -722,10 +722,48 @@ bool fat_seek_end(char _syscall_nr, uint8_t fd) {
     return true;
 }
 
+bool fat_seek(char _syscall_nr, uint8_t fd, uint32_t offset) {
+    struct FileDescriptor *pfd = get_desc(fd);
+    if (!pfd) {
+        return false;
+    }
+    if (pfd->dir_entry.size < offset) {
+        return fat_seek_end(0, fd);
+    }
+    if (!seek_begin(pfd)) {
+        return false;
+    }
+    pfd->abs_offset = offset;
+    uint16_t bytes_per_cluster = fat_info.sectors_per_cluster * CARD_BLOCK_SIZE;
+    while (offset > bytes_per_cluster) {
+        pfd->cur_cluster = pfd->next_cluster;
+        uint16_t next_cluster = read_fat_entry(pfd->next_cluster);
+        pfd->next_cluster = next_cluster;
+        if (!next_cluster) {
+            return false;
+        }
+        offset -= bytes_per_cluster;
+    }
+    pfd->block_in_cluster = offset >> 9;
+    pfd->index_in_block = offset & (CARD_BLOCK_SIZE - 1);
+    pfd->block_addr = fat_info.data_offset
+        + ((uint32_t)(pfd->cur_cluster - 2) << fat_info.log_sectors_per_cluster)
+        + pfd->block_in_cluster;
+    return true;
+}
+
 uint32_t fat_get_size(char _syscall_nr, uint8_t fd) {
     struct FileDescriptor *pfd = get_desc(fd);
     if (pfd) {
         return pfd->dir_entry.size;
+    }
+    return 0xFFFFFFFF;
+}
+
+uint32_t fat_tell(char _syscall_nr, uint8_t fd) {
+    struct FileDescriptor *pfd = get_desc(fd);
+    if (pfd) {
+        return pfd->abs_offset;
     }
     return 0xFFFFFFFF;
 }

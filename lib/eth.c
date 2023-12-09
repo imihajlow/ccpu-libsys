@@ -29,7 +29,7 @@ void eth_transmit(const void *data, size_t size) {
     }
     last_frame_len = size;
 
-    uint32_t c = crc_update(0xffffffff, data, data + size);
+    uint32_t c = crc_update(0xffffffff, data, (const char*)data + size);
     c = crc_update_zeroes(c, TX_BUF_LEN - FCS_LEN - PREAMBLE_LEN - 1 - size);
 #if LAST_BYTE_ZERO
     uint8_t adj = 0xd9 ^ (uint8_t)c;

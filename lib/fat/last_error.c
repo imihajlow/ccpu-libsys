@@ -7,8 +7,7 @@ uint8_t fat_get_last_error(char _syscall_nr) {
     return last_error;
 }
 
-
-void fat_print_last_error(void) {
+void fat_print_last_error(char _syscall_nr) {
     uint8_t e = last_error;
     switch (e) {
     case FAT_ERROR_OK: puts("ok"); break;

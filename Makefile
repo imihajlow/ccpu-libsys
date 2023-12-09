@@ -1,9 +1,10 @@
 CC=ccpu-cc
 ASM=../ccpu/tools/asm.py
-CFLAGS=--std=gnu11 -I include -I ../ccpu-libc/include -D FAT_IMPL
+CFLAGS=--std=gnu11 -I include -I ../ccpu-libc/include
 
 LIBSYS_OBJECTS=lib/vga.o lib/ps2.o lib/ps2keyboard.o lib/crc.o lib/eth.o lib/mac.o lib/bitmix.o lib/card.o lib/fat/name.o lib/syscall.o
-LIBSYS_FAT_OBJECTS=lib/fat/fat.o lib/fat/path.o lib/fat/last_error.o lib/fat/exec.o lib/fat/loload.o lib/fat/lorun.o lib/fat/progressbar.o
+LIBSYS_FAT_OBJECTS=lib/fat/fat_fi.o lib/fat/path_fi.o lib/fat/last_error_fi.o lib/fat/exec_fi.o\
+		lib/fat/loload.o lib/fat/lorun.o lib/fat/progressbar.o
 
 all: libsys.a libfat_impl.a
 
@@ -13,6 +14,10 @@ libsys.a: $(LIBSYS_OBJECTS)
 libfat_impl.a: $(LIBSYS_FAT_OBJECTS)
 	ar rc $@ $^
 
+%_fi.o: %.c
+	$(CC) $(CFLAGS) -D FAT_IMPL -o $(@:.o=.s) $<
+	$(ASM) -o $@ $(@:.o=.s)
+
 %.o: %.c
 	$(CC) $(CFLAGS) -o $(@:.o=.s) $<
 	$(ASM) -o $@ $(@:.o=.s)
@@ -21,5 +26,5 @@ libfat_impl.a: $(LIBSYS_FAT_OBJECTS)
 	$(ASM) -o $@ $^
 
 clean:
-	rm -f lib/*.s lib/*.o libsys.a lib/fat/*.o
+	rm -f lib/*.s lib/*.o *.a lib/fat/*.o
 

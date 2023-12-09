@@ -3,7 +3,7 @@
 #include <assert.h>
 
 #define FAT_MIN_LAST_CLUSTER 0xFFF8
-#define MAX_FILE_DESC 4
+#define MAX_FILE_DESC 16
 
 struct Partition {
     uint8_t boot; // 0x00
