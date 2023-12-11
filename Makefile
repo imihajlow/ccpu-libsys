@@ -15,12 +15,10 @@ libfat_impl.a: $(LIBSYS_FAT_OBJECTS)
 	ar rc $@ $^
 
 %_fi.o: %.c
-	$(CC) $(CFLAGS) -D FAT_IMPL -o $(@:.o=.s) $<
-	$(ASM) -o $@ $(@:.o=.s)
+	$(CC) $(CFLAGS) -DFAT_IMPL -o $@ $<
 
 %.o: %.c
-	$(CC) $(CFLAGS) -o $(@:.o=.s) $<
-	$(ASM) -o $@ $(@:.o=.s)
+	$(CC) $(CFLAGS) -o $@ $<
 
 %.o: %.asm
 	$(ASM) -o $@ $^
