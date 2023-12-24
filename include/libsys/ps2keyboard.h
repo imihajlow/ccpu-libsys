@@ -119,6 +119,7 @@
 extern uint8_t ps2_modifiers_mask;
 
 uint8_t ps2_get_key_event(void);
+uint8_t ps2_get_key_event_with_code(uint8_t code);
 uint8_t ps2_wait_key_pressed(void);
 
 #define PS2_ASCII_SCANCODE_MASK 0x8000u

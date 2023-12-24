@@ -317,8 +317,12 @@ uint8_t ps2_wait_key_pressed(void) {
 }
 
 uint8_t ps2_get_key_event(void) {
-    uint8_t code = ps2_read();
+    return ps2_get_key_event_with_code(ps2_read());
+}
+
+uint8_t ps2_get_key_event_with_code(uint8_t code) {
     uint8_t result = PS2_KEY_NONE;
+    bool done = false;
     if (code != PS2_READ_EMPTY) {
         if (code == PS2_CODE_BAT_PASSED || code == PS2_CODE_BUFFER_OVERRUN) {
             // TODO handle BAT error
@@ -334,9 +338,10 @@ uint8_t ps2_get_key_event(void) {
             } else {
                 result = scancode[code];
             }
+            done = true;
         }
     }
-    if (result) {
+    if (done) {
         uint8_t mask = 0;
         if (result == PS2_KEY_RSHIFT || result == PS2_KEY_LSHIFT) {
             mask = PS2_MASK_SHIFT;
@@ -352,7 +357,9 @@ uint8_t ps2_get_key_event(void) {
         } else {
             ps2_modifiers_mask |= mask;
         }
-        result |= release;
+        if (result) {
+            result |= release;
+        }
         release = 0;
         extended = false;
         return result;
