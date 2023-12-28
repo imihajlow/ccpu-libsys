@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <assert.h>
 
 #include "name.h"
@@ -151,12 +152,12 @@ bool fat_change_dir(struct FatDirEntry *parent, const char *name, struct FatDirE
 /**
  * Load a file into Lo RAM and jump there.
  */
-bool fat_exec(char _syscall_nr, const char *filename);
+bool fat_exec(char _syscall_nr, const char *filename, uint8_t argc, ...);
 
 /**
  * Load a file into Lo RAM and jump there.
  */
-bool fat_exec_fd(char _syscall_nr, uint8_t fd);
+bool fat_exec_fd(char _syscall_nr, uint8_t fd, uint8_t argc, va_list va);
 
 
 /**
@@ -204,11 +205,8 @@ typedef bool (*__fat_get_next_dir_entry_t)(char _syscall_nr, uint8_t dir_desc, s
 typedef bool (*__fat_mount_t)(char _syscall_nr);
 #define fat_mount() ((__fat_mount_t)SYSCALL_ADDR)(SYSCALL_FAT_MOUNT)
 
-typedef bool (*__fat_exec_t)(char _syscall_nr, const char *filename);
-#define fat_exec(filename) ((__fat_exec_t)SYSCALL_ADDR)(SYSCALL_EXEC, filename)
-
-typedef bool (*__fat_exec_fd_t)(char _syscall_nr, uint8_t fd);
-#define fat_exec_fd(fd) ((__fat_exec_fd_t)SYSCALL_ADDR)(SYSCALL_EXEC_FD, fd)
+typedef bool (*__fat_exec_t)(char _syscall_nr, const char *filename, uint8_t argc, ...);
+#define fat_exec(filename, ...) ((__fat_exec_t)SYSCALL_ADDR)(SYSCALL_EXEC, filename, __VA_ARGS__)
 
 typedef uint8_t (*__get_last_error_fd_t)(char _syscall_nr);
 #define fat_get_last_error() ((__get_last_error_fd_t)SYSCALL_ADDR)(SYSCALL_GET_LAST_ERROR)

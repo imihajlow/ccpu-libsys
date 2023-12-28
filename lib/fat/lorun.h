@@ -1,3 +1,5 @@
 #pragma once
+#include <stdarg.h>
+#include <stdint.h>
 
-void lorun(void);
+void lorun(uint8_t argc, va_list va);

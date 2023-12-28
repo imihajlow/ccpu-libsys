@@ -2,14 +2,25 @@
 
     .section ramtext.lorun
 lorun:
-    mov a, pl
-    mov b, a
-    mov a, ph
-    ldi pl, lo(ret)
-    ldi ph, hi(ret)
-    st b
-    inc pl
-    st a
+    ; load argc
+    ldi ph, hi(0xc800)
+    ldi pl, lo(0xc800)
+    ld  b
+
+    ; set SP1 to point to the vararg page, SP0 to the previous page
+    ldi ph, hi(0xc809)
+    ldi pl, lo(0xc809)
+    ld  a
+    ldi ph, hi(0xfc01)
+    ldi pl, lo(0xfc01)
+    st  a
+    dec a
+    dec pl
+    st  a
+
+    ; store argc on frame
+    ldi ph, hi(0xc800)
+    st  b
 
     ldi pl, lo(0xff02)
     ldi ph, hi(0xff02)
@@ -26,16 +37,13 @@ lorun:
     ldi a, 0xde ; enable segments A-B, D-E, both boards, disable lo RAM
     st a
 
-    ldi pl, lo(ret)
-    ldi ph, hi(ret)
-    ld a
-    inc pl
-    ld ph
+    ; restart
+    mov a, 0
+    mov ph, a
     mov pl, a
     jmp
 
 
     .section bss.lorun
-    .align 2
-ret:
-    res 2
+argc:
+    res 1

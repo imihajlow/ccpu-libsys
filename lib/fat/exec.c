@@ -7,15 +7,19 @@
 
 extern void *__seg_ramtext_begin;
 
-bool fat_exec(char _syscall_nr, const char *filename) {
+bool fat_exec(char _syscall_nr, const char *filename, uint8_t argc, ...) {
     uint8_t fd = fat_open_path(0, filename, 0);
     if (fd == FAT_BAD_DESC) {
         return false;
     }
-    return fat_exec_fd(0, fd);
+    va_list va;
+    va_start(va, argc);
+    bool r = fat_exec_fd(0, fd, argc, va);
+    va_end(va);
+    return r;
 }
 
-bool fat_exec_fd(char _syscall_nr, uint8_t fd) {
+bool fat_exec_fd(char _syscall_nr, uint8_t fd, uint8_t argc, va_list va) {
     struct FatDirEntry *de = fat_get_dir_entry(fd);
     if (!de) {
         fat_close(0, fd);
@@ -61,6 +65,6 @@ bool fat_exec_fd(char _syscall_nr, uint8_t fd) {
         progressbar_progress(r >> 8);
     }
     fat_close(0, fd);
-    lorun();
+    lorun(argc, va);
     return true;
 }
